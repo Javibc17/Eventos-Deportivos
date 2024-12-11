@@ -1,11 +1,10 @@
 <?php
-include "procesar.php";
+  include "../procesar.php";
 
+  $errors = isset($_SESSION['errors']) ? $_SESSION['errors']: null ;
+  unset($_SESSION['errors']);
 
-
-echo"";
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -16,7 +15,6 @@ echo"";
   <title>Organizadores</title>
   <link rel="stylesheet" href="../styles/crudStyle.css">
 </head>
-
 <body>
   <header>
     <h1>Organizadores</h1>
@@ -32,162 +30,60 @@ echo"";
           <th></th>
         </thead>
         <tbody>
+          <?php 
+            $managers = get("organizadores");
+
+            if (empty($managers)) {
+              echo "<tr><td colspan='5'>No se ha encontrado ningún usuario</td></tr>";
+            } else {
+              foreach ($managers as $manager):
+          ?>
+            <tr>
+              <td><?php echo $manager['id']; ?></td>
+              <td><?php echo $manager['nombre']; ?></td>
+              <td><?php echo $manager['email']; ?></td>
+              <td><?php echo $manager['telefono']; ?></td>
+              <td>
+								<form action='../procesar.php' method='POST'>
+									<input type='hidden' name='accion' value='DELTorganizadores'>
+									<input type='hidden' name='id' value='<?php echo $manager['id']; ?>'>
+									<button type='submit' onclick='return confirm("¿Estás seguro de que deseas eliminar este organizador?")'>Eliminar</button>
+								</form>
+              </td>
+            </tr>
+          <?php 
+              endforeach; 
+            }
+          ?>
 
         </tbody>
       </table>
     </div>
 
-    <form>
+    <form action="../procesar.php" method="post">
       
-      <ul id="errorList"></ul>
+      <?php if ($errors == true): ?>
+        <ul id="errorList">
+          <?php 
+            foreach ($errors as $error) {
+              echo "<li>$error</li>";
+            }
+          ?>
+        </ul>
+      <?php endif; ?>
       
-
       <div>
         <h2>Crear organizador</h2>
+        <input type="hidden" name="accion" value="POSTorganizadores">
+
         <input type="text" id="name" name="name" placeholder="Nombre">
         <input type="email" id="email" name="email" placeholder="Correo">
         <input type="text" id="number" name="number" placeholder="Telefono">
       </div>
 
-
-
       <button id="btnForm" type="submit">Crear</button>
     </form>
   </main>
-  <script>
-
-    async function getManagers() {
-      try {
-        const response = await fetch("http://localhost/carpeta/EventosDeportivosCrud/procesar.php?table=organizadores")
-
-        if (!response.ok) {
-          throw new Error("Error en la solicitud")
-        }
-        const managers = await response.json()
-
-
-        if (managers.length !== 0) {
-          const tbody = document.querySelector("tbody")
-          tbody.innerText = ""
-
-          managers.forEach(manager => {
-            const tr = document.createElement("tr")
-
-            tr.innerHTML = `
-                <td>${manager.id}</td>
-                <td>${manager.nombre}</td>
-                <td>${manager.email}</td>
-                <td>${manager.telefono}</td>
-                <td>
-                  <button onclick="deleteManager(${manager.id})">Eliminar</button>
-                </td>
-              `
-            tbody.appendChild(tr)
-          })
-
-        } else {
-          alert("No se ha encontrado ningun organizador registrado")
-        }
-
-      } catch (error) {
-        console.error("Hubo un problema con la solicitud:", error)
-      }
-    }
-
-    getManagers()
-
-    async function postManager() {
-      const inputName = document.getElementById("name")
-      const inputEmail = document.getElementById("email")
-      const inputNumber = document.getElementById("number")
-      const ulErrors = document.getElementById("errorList")
-
-      
-
-      ulErrors.innerText = ""
-
-      
-
-      if (errorList.length > 0) {
-        
-      } else {
-        ulErrors.style.display = "none"
-
-        try {
-          const response = await fetch("http://localhost/carpeta/EventosDeportivosCrud/procesar.php?table=organizadores", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              name: inputName.value,
-              email: inputEmail.value,
-              number: numberValue
-            })
-          })
-
-          if (response.status === 201) {
-            alert("Se ha enviado correctamente")
-            getManagers() 
-          } else if (response.status === 500  ) {
-            ulErrors.style.display = "block"
-            errorList.forEach(error => {
-              const li = document.createElement("li")
-              li.textContent = error
-              ulErrors.appendChild(li)
-            })
-
-          } else {
-            alert("Error desconocido al enviar los datos")
-          }
-
-          inputName.value = ""
-          inputEmail.value = ""
-          inputNumber.value = ""
-
-        } catch (error) {
-          console.error("Error en la solicitud:", error)
-        }
-      }
-    }
-
-
-
-    async function deleteManager(id) {
-      if (confirm("¿Estás seguro que deseas eliminar este organizador?")) {
-        try {
-          const response = await fetch("http://localhost/carpeta/EventosDeportivosCrud/procesar.php?table=organizadores&id=" + id, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json"
-            }
-          })
-
-          if (response.ok) {
-            alert("Organizador eliminado con éxito")
-            getManagers()
-
-          } else {
-            alert("Error al eliminar el organizador")
-            if (response.status === 403) {
-              alert("No se puede eliminar el organizador porque tiene eventos asociados")
-            }
-          }
-
-        } catch (error) {
-          console.error("Error en la solicitud: " + error)
-        }
-      }
-    }
-
-    document.querySelector("form").addEventListener("submit", async (event) => {
-      event.preventDefault()
-      await postManager()
-    })
-
-  </script>
-
 
 </body>
-
 </html>

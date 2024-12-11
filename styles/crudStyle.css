@@ -1,99 +1,165 @@
-body{
+body {
     height: 95vh;
     color: black;
     background-color: #DFF2EB;
     margin: 0;
     padding: 20px;
+    font-family: Arial, sans-serif; 
 }
 
-button{
+.btn {
     cursor: pointer;
+    border: none; 
+    padding: 10px 15px; 
+    border-radius: 5px; 
+    transition: background-color 0.3s; 
 }
 
-header{
+.btn:hover {
+    opacity: 0.8; 
+}
+
+.header {
     margin-bottom: 30px;
 }
 
-h1{
+.header h1 {
     margin: 0;
     text-align: center;
     color: #4A628A;
 }
 
-main{
+.main-container {
     display: flex;
     justify-content: space-around;
-    align-items: center;
+    align-items: flex-start; 
     height: 90%;
 }
 
-main > div{
+.main-content {
     width: 70%;
     height: 100%;
     border: solid 2px #7AB2D3;
     border-radius: 5px;
     background-color: #B9E5E8;
     color: #4A628A;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-form{
+.form {
     display: flex;
-    flex-direction: column;
-    justify-content: space-around;
+    flex-direction: column; 
     align-items: center;
-    width: 25%;
-    height: 100%;
-    border: solid 2px #B9E5E8;
-    border-radius: 5px;
-    background-color: #7AB2D3;
-    text-align: center;
+    width: 100%;
 }
 
+.table-container {
+    max-height: 400px; 
+    overflow: hidden; 
+}
 
-table{
-    width: 95%; 
-    margin: 15px;
+.table {
+    width: 100%;
     border-collapse: collapse;
 }
 
-th, td {
-    border-radius: 5px;
-    padding: 8px; 
-    width: 12.5%;
+.table th, .table td {
+    border: 1px solid #4A628A;
+    padding: 10px;
     text-align: center;
 }
 
-td > button:first-child{
+.table td > form {
+    display: inline;
+}
+
+.table td > a {
+    text-decoration: none;
+    padding: 5px 10px; 
+    border-bottom: 2px solid darkslategrey;
+    border-right: 2px solid darkslategrey;
     background-color: #007CFF;
-    border-color: #007CFF;
-    
     color: #f5f5f5;
     border-radius: 5px;
-    margin-bottom: 3px;
+    transition: 0.3s;
 }
 
-td > button:last-child{
+.table td > a:hover {
+    background-color: #0056b3; 
+}
+
+.table td > form > .btn {
     background-color: #DC3544;
-    border-color: #DC3544;
     color: #f5f5f5;
-    border-radius: 5px;
 }
 
-
-form > div{
+.form-container {
     width: 80%;
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-
-input{
+.input-field {
     width: 95%;
-    padding: 5px;
+    padding: 10px; 
+    border: 1px solid #4A628A; 
+    border-radius: 5px; 
 }
 
-ul{
-    display: none;
+.input-field:focus {
+    outline: none; 
+    border-color: #007CFF;
+}
+
+.error-list {
     color: #e9505d;
+    list-style-type: none; 
+    padding: 0;
+}
+
+a {
+    text-decoration: none;
+    color: black;
+}
+
+.btn-back {
+    display: inline-block;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    background-color: #007CFF;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.btn-back:hover {
+    background-color: #0056b3;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination-container a {
+    margin: 0 5px;
+    padding: 5px 10px;
+    border: 1px solid #007CFF;
+    border-radius: 5px;
+    color: #007CFF;
+    text-decoration: none;
+}
+
+.pagination-container a.active {
+    background-color: #007CFF;
+    color: white;
+}
+
+.pagination-container a:hover {
+    background-color: #0056b3;
+    color: white;
 }

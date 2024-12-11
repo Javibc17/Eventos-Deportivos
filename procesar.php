@@ -1,4 +1,5 @@
 <?php
+session_start();
 
 function conectarDB(){
 
@@ -28,25 +29,20 @@ function get($table){
   
   $result = $conn->query($sql);
 
-  $events = [];
+  $arrayResult = [];
   if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
-      $events[] = $row;
+      $arrayResult[] = $row;
     }
   }
 
-  header("Content-Type: application/json");
-  echo json_encode($events);
-  $conn->close();
+  return $arrayResult;
 }
 
-function post($table, $data){
+function post($accion){
   $conn = conectarDB();
-
-  $columns = "";
-  $values = [];
-  $types = "";
-
+  $table = substr($accion, 4);
+  
   if ($table === "organizadores") {
 
     $regexEmail = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
@@ -56,51 +52,94 @@ function post($table, $data){
     $inputEmail = isset($_POST['email']) ? trim($_POST['email']) : '';
     $inputNumber = isset($_POST['number']) ? trim($_POST['number']) : '';
 
-    if (strlen($inputName) < 2) {
-      http_response_code(401);
-      $conn->close();   
-      return;
+    if (empty($inputName)) {
+      $errors[] = "El nombre es obligatorio";
+    }else if (strlen($inputName) < 2) {
+      $errors[] = "El usuario debe contener mas de 2 caracteres";
     }
 
-    if (!preg_match($regexEmail, $inputEmail)) {
-      http_response_code(401);
+    if (empty($inputEmail)) {
+      $errors[] = "El correo electronico es obligatorio";
+    }else if (!preg_match($regexEmail, $inputEmail)) {
+      $errors[] = "El correo debe mantener la estructura de un correo electronico";
+    }
+
+    if (empty($inputNumber)) {
+      $errors[] = "El numero de telefono es obligatorio";
+    }else if (!preg_match($regexNumber, $inputNumber)) {
+      $errors[] = "El numero de telefono deve contener 9 digitos";
+    }
+
+    if (!empty($errors)) {
+      $_SESSION['errors'] = $errors;
+      header("Location: pages/organizadores.php");
       $conn->close();
-      return;
+      exit();
+      
+    }else {
+
+      $columns = "(nombre, email, telefono)";
+      $values = [
+        htmlspecialchars(trim($inputName)),
+        htmlspecialchars(trim($inputEmail)),
+        htmlspecialchars(trim($inputNumber)),
+      ];
+      $types = "sss";
     }
-
-    if (strlen($inputNumber) !== 9 || !preg_match($regexNumber, $inputNumber)) {
-      http_response_code(401);
-      $conn->close();   
-      return; 
-    }
-
-
-
-
-    $columns = "(nombre, email, telefono)";
-    $values = [
-      htmlspecialchars(trim($data['name'])),
-      htmlspecialchars(trim($data['email'])),
-      htmlspecialchars(trim($data['number'])),
-    ];
-    $types = "sss";
 
   } else if ($table === "eventos") {
 
-    $datetime = $data['fecha'];
+    $inputNombreEvento = isset($_POST['nombre_evento']) ? trim($_POST['nombre_evento']) : '';
+    $inputDeporte = isset($_POST['deporte']) ? trim($_POST['deporte']) : '';
+    $datetime = isset($_POST['fecha']) ? $_POST['fecha'] : '';
+    $inputUbicacion = isset($_POST['ubicacion']) ? trim($_POST['ubicacion']) : '';
+    $idOrganizador = isset($_POST['idOrganizador']) ? $_POST['idOrganizador'] : '';
+
+    if (empty($inputNombreEvento)) {
+      $errors[] = "El nombre del evento es obligatorio";
+    }else if (strlen($inputNombreEvento) < 2) {
+      $errors[] = "El nombre del evento debe contener más de 2 caracteres";
+    }
+
+    if (empty($inputDeporte)) {
+      $errors[] = "El tipo de deporte es obligatorio";
+    }else if (strlen($inputDeporte) < 2) {
+      $errors[] = "El tipo de deportedebe contener más de 2 caracteres";
+    }
+
+    if (empty($datetime)) {
+      $errors[] = "La fecha y hora son obligatorios";
+    }
+
+    if (empty($inputUbicacion)) {
+      $errors[] = "La ubicación es obligatoria";
+    }
+
+    if (empty($idOrganizador) || !is_numeric($idOrganizador)) {
+      $errors[] = "El organizador es obligatorio y debe ser un número válido";
+    }
+
     list($date, $time) = explode('T', $datetime);
 
-    $columns = "(nombre_evento, tipo_deporte, fecha, hora, ubicacion, id_organizador)";
+    if (!empty($errors)) {
+      $_SESSION['errors'] = $errors;
+      header("Location: pages/eventos.php");
+      $conn->close();
+      exit();
 
-    $values = [
-      htmlspecialchars(trim($data['nombre_evento'])),
-      htmlspecialchars(trim($data['deporte'])),
-      htmlspecialchars($date),
-      htmlspecialchars($time),
-      htmlspecialchars(trim($data['ubicacion'])),
-      $data['idOrganizador']
-    ];
-    $types = "ssssss";
+    } else {
+
+      $columns = "(nombre_evento, tipo_deporte, fecha, hora, ubicacion, id_organizador)";
+      $values = [
+        htmlspecialchars($inputNombreEvento),
+        htmlspecialchars($inputDeporte),
+        htmlspecialchars($date),
+        htmlspecialchars($time),
+        htmlspecialchars($inputUbicacion),
+        $idOrganizador,
+      ];
+      $types = "ssssss";
+    }
   }
 
   $placeholders = implode(", ", array_fill(0, count($values), "?"));
@@ -108,69 +147,96 @@ function post($table, $data){
   $stmt->bind_param($types, ...$values);
 
   if ($stmt->execute()) {
-    http_response_code(201);
+    echo "<script>
+            alert('Organizador guardado correctamente.');
+            window.location.href = 'pages/$table.php';
+          </script>";
+    exit();
   } else {
-    http_response_code(500);
+    echo "<script>
+            alert('Error al guardar el organizador');
+            window.location.href = 'pages/$table.php';
+          </script>";
+    exit();
   }
 }
 
-function getById($id) {
+function put($id){
   $conn = conectarDB();
 
-  $stmt = $conn->prepare("SELECT * FROM eventos WHERE id = ?");
-  $stmt->bind_param("i", $id);
-  $stmt->execute();
-  $result = $stmt->get_result();
+  $inputNombreEvento = isset($_POST['nombre_evento']) ? trim($_POST['nombre_evento']) : '';
+  $inputDeporte = isset($_POST['deporte']) ? trim($_POST['deporte']) : '';
+  $datetime = isset($_POST['fecha']) ? $_POST['fecha'] : '';
+  $inputUbicacion = isset($_POST['ubicacion']) ? trim($_POST['ubicacion']) : '';
+  $idOrganizador = isset($_POST['idOrganizador']) ? $_POST['idOrganizador'] : '';
 
-  
 
-  if ($result->num_rows > 0) {
-
-    $row = $result->fetch_assoc();
-    header("Content-Type: application/json");
-    echo json_encode($row);
-    
-  } else {
-    http_response_code(404);
+  if (empty($inputNombreEvento)) {
+    $errors[] = "El nombre del evento es obligatorio";
+  }else if (strlen($inputNombreEvento) < 2) {
+    $errors[] = "El nombre del evento debe contener más de 2 caracteres";
   }
 
-  $stmt->close();
-  $conn->close();
-}
+  if (empty($inputDeporte)) {
+    $errors[] = "El tipo de deporte es obligatorio";
+  }else if (strlen($inputDeporte) < 2) {
+    $errors[] = "El tipo de deportedebe contener más de 2 caracteres";
+  }
 
-function update($id, $data){
-  $conn = conectarDB();
+  if (empty($datetime)) {
+    $errors[] = "La fecha y hora son obligatorios";
+  }
 
-  $datetime = htmlspecialchars($data['fecha']);
+  if (empty($inputUbicacion)) {
+    $errors[] = "La ubicación es obligatoria";
+  }
 
+  if (empty($idOrganizador) || !is_numeric($idOrganizador)) {
+    $errors[] = "El organizador es obligatorio y debe ser un número válido";
+  }
+
+  if (!empty($errors)) {
+    $_SESSION['errors'] = $errors;
+    header("Location: pages/eventos.php");
+    $conn->close();
+    exit();
+  }
+  $id = (int) $id;
   list($date, $time) = explode('T', $datetime);
 
-  $eventName = htmlspecialchars(trim($data['nombre_evento']));
-  $sport = htmlspecialchars(trim($data['deporte']));
-  $location = htmlspecialchars(trim($data['ubicacion']));
-  $idOrganizador = (int) $data['idOrganizador'];
-  $id = (int) $id;
   
   $stmt = $conn->prepare("UPDATE eventos SET nombre_evento = ?, tipo_deporte = ?, fecha = ?, hora = ?, ubicacion = ?, id_organizador = ? WHERE id = ?");
-  $stmt->bind_param("ssssssi", $eventName, $sport, $date, $time, $location, $idOrganizador, $id);
+  $stmt->bind_param("ssssssi", $inputNombreEvento, $inputDeporte, $date, $time, $inputUbicacion, $idOrganizador, $id);
 
   if ($stmt->execute()) {
-    http_response_code(200);
 
+    $stmt->close();
+    $conn->close();
+    echo "<script>
+            alert('Evento guardado correctamente');
+            window.location.href = './pages/eventos.php';
+          </script>";
+    exit();
   } else {
-    http_response_code(500);
-    error_log("Error al actualizar evento: " . $stmt->error);
-  }
 
-  $stmt->close();
-  $conn->close();
+    $stmt->close();
+    $conn->close();
+    echo "<script>
+            alert('Se produjo un error');
+            window.location.href = './pages/eventos.php';
+          </script>";
+    exit();
+  }
 }
 
-function delete($table, $id){
+function delete($accion){
   $conn = conectarDB();
 
+  $id = $_POST['id'];
+  $table = substr($accion, 4);
 
   if ($table === "organizadores") {
+
     $stmt = $conn->prepare("SELECT COUNT(*) FROM eventos WHERE id_organizador = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
@@ -178,25 +244,65 @@ function delete($table, $id){
     $row = $result->fetch_assoc();
 
     if ($row["COUNT(*)"] > 0) {
-      http_response_code(403);
       $stmt->close();
       $conn->close();
-      return;
+
+      echo "<script>
+              alert('No se puede eliminar el organizador porque tiene eventos asociados.');
+              window.location.href = './pages/organizadores.php';
+            </script>";
+      exit();
     }
   }
-
+  
   $stmt = $conn->prepare("DELETE FROM $table WHERE id = ?");
   $stmt->bind_param("i", $id);
 
   if ($stmt->execute()) {
-    http_response_code(200);
+    $stmt->close();
+    $conn->close();
+
+    echo "<script>
+            alert('Eliminado con éxito.');
+            window.location.href = './pages/$table.php';
+          </script>";
+    exit();
+
   } else {
-    http_response_code(500);
+    $stmt->close();
+    $conn->close();
+    
+    echo "<script>
+            alert('Se ha producido un error');
+            window.location.href = './pages/$table.php';
+          </script>";
+    exit();
   }
+}
 
-  $stmt->close();
-  $conn->close();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+  $method = substr($_POST['accion'], 0, 4);
+  
+  switch ($method) {
+
+    case 'POST':
+      post($_POST['accion']);
+      break;
+
+    case 'UPDA':
+
+      put($_POST['id']);
+      break;
+
+    case 'DELT':
+
+      delete($_POST['accion']);
+      break;
+
+    default:
+        break;
+  }
 }
 
 
